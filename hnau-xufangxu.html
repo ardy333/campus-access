@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>假期留校人员出入管理系统</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#22c55e',
+            'primary-dark': '#16a34a',
+            'page-bg': '#f2faf4',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; min-height: 100vh;
+      background: #f2faf4;
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* 主容器 */
+    .main-box {
+      width: 100%;
+      max-width: 448px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: #f2faf4;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 水印 */
+    .watermark {
+      position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 999;
+    }
+    .watermark-inner {
+      position: absolute;
+      width: 220%; height: 220%; top: -60%; left: -60%;
+      transform: rotate(-30deg);
+      display: flex; flex-wrap: wrap; align-content: center; justify-content: center;
+      gap: 20vh 20vw;
+    }
+    .watermark-item {
+      color: #333; opacity: 0.12; font-size: clamp(12px, 2vh, 18px); white-space: nowrap;
+    }
+
+    /* 内容层 */
+    .content-layer {
+      position: relative; z-index: 10;
+      flex: 1; display: flex; flex-direction: column;
+      padding: 1.2vh 3vw; gap: 1vh;
+    }
+
+    /* ── 顶部导航栏 ── */
+    .nav-bar {
+      background: #000; color: #fff;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.8vh 2vw; flex-shrink: 0;
+    }
+    .nav-close { font-size: clamp(16px, 2.5vh, 26px); line-height: 1; }
+    .nav-center { text-align: center; flex: 1; }
+    .nav-title { font-size: clamp(12px, 1.8vh, 17px); font-weight: 500; }
+    .nav-domain { font-size: clamp(9px, 1.3vh, 13px); color: #999; }
+    .nav-more { font-size: clamp(16px, 2.5vh, 26px); line-height: 1; }
+
+    /* ── 学校抬头 ── */
+    .header-row {
+      background: #fff; display: flex; align-items: center;
+      padding: 1vh 2vw; gap: 1.5vw; flex-shrink: 0; border-radius: 2vh;
+    }
+    .emblem-box { width: clamp(36px, 5vh, 52px); height: clamp(36px, 5vh, 52px); flex-shrink: 0; }
+    .emblem-box img { width: 100%; height: 100%; object-fit: contain; }
+    .school-name-box { flex: 1; display: flex; align-items: center; }
+    .school-name-box img { height: clamp(32px, 6vh, 56px); object-fit: contain; }
+    .sys-title { font-size: clamp(14px, 2.2vh, 20px); font-weight: bold; color: #333; flex-shrink: 0; line-height: 1.3; }
+
+    /* ── 单列布局 ── */
+    .single-col {
+      display: flex; flex-direction: column; gap: 1vh;
+    }
+
+    /* ── 时间卡片 ── */
+    .time-card {
+      background: #fff; border-radius: 2vh; position: relative; overflow: hidden;
+      text-align: center; display: flex; flex-direction: column;
+      justify-content: center; padding: 2vh 3vw 0.4vh 3vw; flex-shrink: 0;
+    }
+    .live-row {
+      display: flex; align-items: center; justify-content: center; gap: 1vw;
+      position: relative; z-index: 10;
+    }
+    .live-pill {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      top: 50%; margin-top: -1.2vh;
+      width: 38%; height: 2.5vh;
+      background: rgba(187,247,208,0.6); border-radius: 10vh;
+    }
+    .live-dot {
+      width: clamp(6px, 1vh, 10px); height: clamp(6px, 1vh, 10px);
+      border-radius: 50%; background: #22c55e; position: relative; z-index: 10;
+      animation: livePulse 1.2s ease-in-out infinite;
+    }
+    @keyframes livePulse {
+      0%,100% { opacity: 1; } 50% { opacity: 0.3; }
+    }
+    .live-text {
+      color: #22c55e; font-size: clamp(10px, 1.4vh, 14px); position: relative; z-index: 10;
+    }
+
+    /* 时间数字 */
+    .time-display {
+      font-family: 'SF Mono', Monaco, 'Roboto Mono', monospace;
+      font-variant-numeric: tabular-nums; font-weight: 400;
+      letter-spacing: -0.07em;
+      position: relative; z-index: 10;
+    }
+    .time-hms {
+      background: linear-gradient(to right, #4ade80, #000);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-size: clamp(40px, 8vh, 72px);
+    }
+    .time-ms {
+      font-size: clamp(24px, 4vh, 36px);
+      color: #22c55e; -webkit-text-fill-color: #22c55e;
+    }
+    .date-text {
+      color: #888; font-size: clamp(10px, 1.5vh, 15px);
+      position: relative; z-index: 10; padding-bottom: 4vh;
+    }
+
+    /* 波浪 */
+    .wave-wrap {
+      position: absolute; bottom: 0; left: 0; width: 100%; height: 75%; overflow: hidden;
+    }
+    .wave-inner {
+      position: absolute; bottom: -1px; left: 0; width: 200%; height: 100%;
+    }
+    .wave-1 { animation: waveRoll 8s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
+    .wave-2 { animation: waveRoll 6s cubic-bezier(0.45, 0, 0.55, 1) infinite; animation-delay: -2s; }
+    .wave-3 { animation: waveRoll 10s cubic-bezier(0.45, 0, 0.55, 1) infinite; animation-delay: -5s; }
+    .wave-inner svg { display: block; width: 100%; height: 100%; }
+    @keyframes waveRoll {
+      0% { transform: translateX(0); } 100% { transform: translateX(-50%); }
+    }
+
+    /* ── 状态卡片 ── */
+    .status-card {
+      background: #fff; border-radius: 2vh;
+      display: flex; align-items: center; gap: 2vw;
+      padding: 1.2vh 3vw; flex-shrink: 0;
+    }
+    .check-circle {
+      width: clamp(32px, 5vh, 50px); height: clamp(32px, 5vh, 50px);
+      border-radius: 50%; background: #22c55e; color: #fff;
+      font-size: clamp(18px, 3vh, 30px);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .status-title {
+      color: #16a34a; font-size: clamp(13px, 2vh, 20px); font-weight: bold;
+    }
+    .status-desc {
+      color: #999; font-size: clamp(9px, 1.3vh, 13px);
+    }
+
+    /* ── 右侧卡片 ── */
+    .info-card {
+      background: #fff; border-radius: 2vh; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .info-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 1.3vh 3vw; border-bottom: 1px solid #f0f0f0;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: #000; font-size: clamp(10px, 1.4vh, 14px); }
+    .info-value { color: #999; font-size: clamp(10px, 1.4vh, 14px); }
+    .info-value.green { color: #22c55e; font-weight: 500; }
+
+    /* 区块标题 */
+    .section-label {
+      color: #999; font-size: clamp(10px, 1.4vh, 14px);
+      padding-left: 0.5vw; flex-shrink: 0;
+    }
+
+    /* ── 底部 ── */
+    .footer-text {
+      text-align: center; color: #aaa;
+      font-size: clamp(9px, 1.1vh, 12px);
+      flex-shrink: 0; padding-top: 0.3vh;
+    }
+
+    /* ── 导航栏内容修改 ── */
+    .nav-bar-placeholder {
+      background: #000; color: #fff;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.8vh 2vw; flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="main-box">
+    <!-- 水印 -->
+    <div class="watermark">
+      <div class="watermark-inner" id="watermarkBox"></div>
+    </div>
+
+    <!-- 内容 -->
+    <div class="content-layer">
+
+      <!-- 导航栏 -->
+      <div class="nav-bar">
+        <span class="nav-close">×</span>
+        <div class="nav-center">
+          <div class="nav-title">河南农业大学假期留校人员出入管…</div>
+          <div class="nav-domain">lxgl.henau.edu.cn</div>
+        </div>
+        <span class="nav-more">⋯</span>
+      </div>
+
+      <!-- 学校抬头 -->
+      <div class="header-row">
+        <div class="emblem-box"><img src="./校徽.png" alt="校徽"></div>
+        <div class="school-name-box"><img src="./校名.jpg" alt="河南农业大学"></div>
+        <div class="sys-title">假期留校人员出入管理<br>系统</div>
+      </div>
+
+      <!-- 单列内容 -->
+      <div class="single-col">
+
+        <div class="time-card">
+          <div class="live-row">
+            <div class="live-pill"></div>
+            <span class="live-dot"></span>
+            <span class="live-text">LIVE · 请核对时间真实性</span>
+          </div>
+          <div class="time-display">
+            <span class="time-hms" id="timeHMS">00:00:00</span><span class="time-ms" id="timeMs">.00</span>
+          </div>
+          <div class="date-text" id="dateStr">2026年7月8日 星期三</div>
+          <div class="wave-wrap">
+            <div class="wave-inner wave-1">
+              <svg viewBox="0 0 1200 120" preserveAspectRatio="none">
+                <path d="M0,60 C200,0 400,120 600,60 C800,0 1000,120 1200,60 V120 H0 Z" fill="#dcfce7" opacity="0.3"/>
+              </svg>
+            </div>
+            <div class="wave-inner wave-2">
+              <svg viewBox="0 0 1200 120" preserveAspectRatio="none">
+                <path d="M0,70 C200,20 400,100 600,70 C800,20 1000,100 1200,70 V120 H0 Z" fill="#bbf7d0" opacity="0.25"/>
+              </svg>
+            </div>
+            <div class="wave-inner wave-3">
+              <svg viewBox="0 0 1200 120" preserveAspectRatio="none">
+                <path d="M0,50 C300,10 500,90 800,50 C1000,20 1100,80 1200,50 V120 H0 Z" fill="#86efac" opacity="0.18"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="status-card">
+          <div class="check-circle">✓</div>
+          <div>
+            <div class="status-title">允许留校</div>
+            <div class="status-desc">该同学已获批留校资格，当前处于有效期内</div>
+          </div>
+        </div>
+
+        <div class="section-label">人员信息</div>
+        <div class="info-card">
+          <div class="info-row"><span class="info-label">校区</span><span class="info-value">龙子湖校区</span></div>
+          <div class="info-row"><span class="info-label">学院</span><span class="info-value">动物科技学院</span></div>
+          <div class="info-row"><span class="info-label">姓名</span><span class="info-value">徐方旭</span></div>
+          <div class="info-row"><span class="info-label">类别</span><span class="info-value">本科生</span></div>
+          <div class="info-row"><span class="info-label">宿舍</span><span class="info-value">桃李北 517</span></div>
+          <div class="info-row"><span class="info-label">学号</span><span class="info-value green">2326811021</span></div>
+        </div>
+
+        <div class="section-label">留校起止时间</div>
+        <div class="info-card">
+          <div class="info-row"><span class="info-label">开始时间</span><span class="info-value">2026-07-06</span></div>
+          <div class="info-row"><span class="info-label">结束时间</span><span class="info-value">2026-09-01</span></div>
+        </div>
+
+        <div class="footer-text">技术支持：河南农业大学IT工作室</div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      var box = document.getElementById('watermarkBox');
+      var html = '';
+      for(var i=0; i<12; i++) html += '<span class="watermark-item">徐方旭 2326811021</span>';
+      box.innerHTML = html;
+    })();
+
+    function updateTime(){
+      var now = new Date();
+      var h=String(now.getHours()).padStart(2,'0');
+      var m=String(now.getMinutes()).padStart(2,'0');
+      var s=String(now.getSeconds()).padStart(2,'0');
+      var ms=String(Math.floor(now.getMilliseconds()/10)).padStart(2,'0');
+      document.getElementById('timeHMS').textContent = h+':'+m+':'+s;
+      document.getElementById('timeMs').textContent = '.'+ms;
+
+      var year=now.getFullYear(), month=now.getMonth()+1, day=now.getDate();
+      var weeks=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+      document.getElementById('dateStr').textContent = year+'年'+month+'月'+day+'日 '+weeks[now.getDay()];
+    }
+    updateTime();
+    setInterval(updateTime, 10);
+  </script>
+
+</body>
+</html>
